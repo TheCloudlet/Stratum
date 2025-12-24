@@ -1,0 +1,40 @@
+#include <iostream>
+#include "nano_cache_sim/cache_sim.hpp"
+
+// Simple manual test runner for now
+// In a real scenario, use GTest or Catch2
+int main() {
+    std::cout << "Running Unit Tests...\n";
+    
+    using namespace nano_cache_sim;
+    
+    // Tiny Cache for testing evictions
+    using Mem = MainMemory<"MainMemory">;
+    using TinyCache = Cache<"Tiny", Mem, 1, 2, 64, LRUPolicy, 1>;
+    
+    // Construct with latency arg for Mem, which bubbles down
+    // Actually, std::make_unique<TinyCache> will call TinyCache()
+    // TinyCache() calls Mem().
+    // If we want to pass mem latency, we do std::make_unique<TinyCache>(100) or similar.
+    // Mem defaults to 100.
+    auto cache = std::make_unique<TinyCache>(100);
+    
+    // Fill Set 0
+    cache->Load(0x0000); // Way 0
+    cache->Load(0x0040); // Way 1 (Set 0 is full now)
+    
+    // Access Way 0 again to make it MRU
+    cache->Load(0x0000);
+    
+    // Load new block -> Should evict Way 1 (0x0040)
+    auto res = cache->Load(0x0080);
+    
+    if (res.hit_level == "MainMemory") {
+        std::cout << "[PASS] Eviction Logic\n";
+    } else {
+        std::cout << "[FAIL] Eviction Logic\n";
+        return 1;
+    }
+
+    return 0;
+}

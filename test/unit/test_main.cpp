@@ -32,7 +32,7 @@ int main() {
     if (res.hit_level == "MainMemory") {
         std::cout << "[PASS] Eviction Logic\n";
     } else {
-        std::cout << "[FAIL] Eviction Logic\n";
+        std::cout << "[FAIL] Eviction Logic. Expected 'MainMemory', got '" << res.hit_level << "'\n";
         return 1;
     }
 

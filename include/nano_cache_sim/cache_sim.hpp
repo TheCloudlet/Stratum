@@ -39,9 +39,7 @@ class MainMemory {
     return {Name.value, latency_};  // Always hits
   }
 
-  AccessResult Store(uint64_t addr) {
-    return {Name.value, latency_};
-  }
+  AccessResult Store(uint64_t addr) { return {Name.value, latency_}; }
 };
 
 // Cache Template
@@ -182,6 +180,6 @@ class Cache {
   void StatsMiss() { misses_++; }
 };
 
-} // namespace nano_cache_sim
+}  // namespace nano_cache_sim
 
-#endif // CACHE_HPP
+#endif  // CACHE_HPP

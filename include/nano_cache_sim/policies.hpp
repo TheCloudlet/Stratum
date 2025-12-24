@@ -83,6 +83,6 @@ class RandomPolicy {
   }
 };
 
-} // namespace nano_cache_sim
+}  // namespace nano_cache_sim
 
 #endif  // POLICIES_HPP

@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
-#include "policies.hpp"
+#include "stratum/policies.hpp"
 
-namespace nano_cache_sim {
+namespace stratum {
 
 struct AccessResult {
   std::string hit_level;
@@ -233,6 +233,6 @@ class Cache {
   void StatsMiss() { misses_++; }
 };
 
-}  // namespace nano_cache_sim
+}  // namespace stratum
 
 #endif  // CACHE_HPP

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(NanoCacheSim VERSION 1.0)
+project(Stratum VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -17,8 +17,8 @@ FetchContent_MakeAvailable(fmt)
 include_directories(include)
 
 # Main Executable
-add_executable(ncsim src/main.cpp)
-target_link_libraries(ncsim PRIVATE fmt::fmt)
+add_executable(stratum src/main.cpp)
+target_link_libraries(stratum PRIVATE fmt::fmt)
 
 # Testing
 enable_testing()

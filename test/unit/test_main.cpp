@@ -1,13 +1,13 @@
 #include <fmt/core.h>
 
-#include "nano_cache_sim/cache_sim.hpp"
+#include "stratum/cache_sim.hpp"
 
 // Simple manual test runner for now
 // In a real scenario, use GTest or Catch2
 int main() {
     fmt::print("Running Unit Tests...\n");
     
-    using namespace nano_cache_sim;
+    using namespace stratum;
     
     // Tiny Cache for testing evictions
     using Mem = MainMemory<"MainMemory">;

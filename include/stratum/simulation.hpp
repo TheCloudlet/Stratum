@@ -7,10 +7,10 @@
 #include <string>
 #include <vector>
 
-#include "nano_cache_sim/cache_sim.hpp"
-#include "nano_cache_sim/trace_parser.hpp"
+#include "stratum/cache_sim.hpp"
+#include "stratum/trace_parser.hpp"
 
-namespace nano_cache_sim {
+namespace stratum {
 
 /**
  * RunTraceSimulation
@@ -84,6 +84,6 @@ void RunTraceSimulation(const std::string& trace_name,
   }
 }
 
-}  // namespace nano_cache_sim
+}  // namespace stratum
 
 #endif  // SIMULATION_HPP

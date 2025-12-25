@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-namespace nano_cache_sim {
+namespace stratum {
 
 struct TraceOp {
   char type;  // 'L' or 'S'
@@ -50,6 +50,6 @@ inline std::vector<TraceOp> ParseTraceFile(const std::string& filename) {
   return ops;
 }
 
-}  // namespace nano_cache_sim
+}  // namespace stratum
 
 #endif  // TRACE_PARSER_HPP

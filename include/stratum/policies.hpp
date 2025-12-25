@@ -5,7 +5,7 @@
 #include <random>
 #include <vector>
 
-namespace nano_cache_sim {
+namespace stratum {
 
 // 1. Least Recently Used (LRU)
 class LRUPolicy {
@@ -83,6 +83,6 @@ class RandomPolicy {
   }
 };
 
-}  // namespace nano_cache_sim
+}  // namespace stratum
 
 #endif  // POLICIES_HPP

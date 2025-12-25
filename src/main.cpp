@@ -60,7 +60,8 @@ int main() {
       {"Random", "../test/data/random.txt"},
       {"Temporal", "../test/data/temporal.txt"},
       {"Spatial", "../test/data/spatial.txt"},
-      {"LargeLoop", "../test/data/largeloop.txt"}};
+      {"LargeLoop", "../test/data/largeloop.txt"},
+      {"Gaussian", "../test/data/gaussian.txt"}};
 
   for (const auto& t : traces) {
     RunSimulation(t.first, t.second);

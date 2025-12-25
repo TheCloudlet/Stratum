@@ -1,10 +1,11 @@
-#include <iostream>
+#include <fmt/core.h>
+
 #include "nano_cache_sim/cache_sim.hpp"
 
 // Simple manual test runner for now
 // In a real scenario, use GTest or Catch2
 int main() {
-    std::cout << "Running Unit Tests...\n";
+    fmt::print("Running Unit Tests...\n");
     
     using namespace nano_cache_sim;
     
@@ -30,9 +31,9 @@ int main() {
     auto res = cache->Load(0x0080);
     
     if (res.hit_level == "MainMemory") {
-        std::cout << "[PASS] Eviction Logic\n";
+        fmt::print("[PASS] Eviction Logic\n");
     } else {
-        std::cout << "[FAIL] Eviction Logic. Expected 'MainMemory', got '" << res.hit_level << "'\n";
+        fmt::print("[FAIL] Eviction Logic. Expected 'MainMemory', got '{}'\n", res.hit_level);
         return 1;
     }
 

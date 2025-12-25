@@ -1,10 +1,13 @@
 #ifndef CACHE_HPP
 #define CACHE_HPP
 
+#include <fmt/core.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -17,6 +20,57 @@ struct AccessResult {
   std::string hit_level;
   size_t total_cycles;
 };
+
+struct CacheStats {
+  size_t hits = 0;
+  size_t misses = 0;
+  size_t total_latency = 0;
+};
+
+inline void PrintSimulationStats(const std::vector<AccessResult>& history,
+                                 const std::vector<std::string>& hierarchy) {
+  std::map<std::string, CacheStats> stats_db;
+
+  for (const auto& res : history) {
+    bool hit_found = false;
+    for (const auto& level_name : hierarchy) {
+      if (level_name == res.hit_level) {
+        stats_db[level_name].hits++;
+        stats_db[level_name].total_latency += res.total_cycles;
+        hit_found = true;
+        break;
+      } else {
+        stats_db[level_name].misses++;
+      }
+    }
+    if (!hit_found) {
+      fmt::print(stderr, "Error: Hit level {} not in hierarchy def!\n",
+                 res.hit_level);
+    }
+  }
+
+  fmt::print("\n=== Simulation Results (Aggregated) ===\n");
+  fmt::print("{:<15} {:>10} {:>10} {:>20}\n", "Level", "Hits", "Misses",
+             "Avg Latency (cyc)");
+
+  for (const auto& level_name : hierarchy) {
+    const auto& s = stats_db[level_name];
+    double avg_lat = 0.0;
+    if (s.hits > 0) avg_lat = (double)s.total_latency / s.hits;
+
+    fmt::print("{:<15} {:>10} {:>10} {:>20.0f}\n", level_name, s.hits, s.misses,
+               avg_lat);
+  }
+}
+
+inline void PrintAccessLog(const std::vector<AccessResult>& history,
+                           const std::vector<uint64_t>& trace_addrs) {
+  fmt::print("\n=== Detailed History ===\n");
+  for (size_t i = 0; i < history.size(); ++i) {
+    fmt::print("Access[{:>4}] Addr=0x{:08x} Hit={:<15} Cyc={:>6}\n", i,
+               trace_addrs[i], history[i].hit_level, history[i].total_cycles);
+  }
+}
 
 enum class AccessType { kLoad, kStore };
 
@@ -138,9 +192,8 @@ class Cache {
 
   // Helper to print stats
   void PrintStats() const {
-    std::cout << "Cache " << Name.value << ": "
-              << "Hits=" << hits_ << ", Misses=" << misses_
-              << ", Evictions=" << evictions_ << "\n";
+    fmt::print("Cache {}: Hits={}, Misses={}, Evictions={}\n", Name.value,
+               hits_, misses_, evictions_);
   }
 
   void PrintAllStats() const {

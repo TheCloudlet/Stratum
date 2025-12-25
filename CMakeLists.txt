@@ -23,4 +23,5 @@ target_link_libraries(ncsim PRIVATE fmt::fmt)
 # Testing
 enable_testing()
 add_executable(unit_tests test/unit/test_main.cpp)
+target_link_libraries(unit_tests PRIVATE fmt::fmt)
 add_test(NAME UnitTests COMMAND unit_tests)

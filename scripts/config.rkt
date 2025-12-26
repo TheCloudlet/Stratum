@@ -130,11 +130,18 @@ EOF
 ;; 5. Main Execution / File I/O
 ;; =============================================================================
 
-(define output-dir "build/generated")
+;; Get output directory from command-line argument or use default
+(define output-dir
+  (let ([args (current-command-line-arguments)])
+    (if (> (vector-length args) 0)
+        (vector-ref args 0)
+        "build/generated")))
 
-;; Ensure directory exists (Racket doesn't have `mkdir -p` built-in easily for deep paths, assuming parent exists from tasks)
+(displayln (format "Output directory: ~a" output-dir))
+
+;; Ensure directory exists (create parent directories if needed)
 (unless (directory-exists? output-dir)
-  (make-directory output-dir))
+  (make-directory* output-dir))
 
 ;; Write each C++ file
 (for ([exp all-experiments])

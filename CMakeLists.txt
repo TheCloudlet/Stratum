@@ -26,6 +26,7 @@ target_compile_definitions(stratum PRIVATE STRATUM_ROOT="${CMAKE_SOURCE_DIR}")
 enable_testing()
 add_executable(unit_tests test/unit/test_main.cpp)
 target_link_libraries(unit_tests PRIVATE fmt::fmt)
+target_compile_definitions(unit_tests PRIVATE STRATUM_ROOT="${CMAKE_SOURCE_DIR}")
 add_test(NAME UnitTests COMMAND unit_tests)
 
 # Generated Experiments
@@ -33,7 +34,7 @@ find_program(RACKET_EXECUTABLE NAMES racket PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 if(RACKET_EXECUTABLE)
   message(STATUS "Found Racket: ${RACKET_EXECUTABLE}")
   execute_process(
-    COMMAND ${RACKET_EXECUTABLE} scripts/config.rkt
+    COMMAND ${RACKET_EXECUTABLE} scripts/config.rkt "${CMAKE_BINARY_DIR}/generated"
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     RESULT_VARIABLE RACKET_RESULT
   )
@@ -44,6 +45,6 @@ else()
   message(WARNING "Racket not found. Racket is required to generate experiment code.")
 endif()
 
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/build/generated/CMakeLists.txt")
-  add_subdirectory(build/generated)
+if(EXISTS "${CMAKE_BINARY_DIR}/generated/CMakeLists.txt")
+  add_subdirectory(${CMAKE_BINARY_DIR}/generated)
 endif()

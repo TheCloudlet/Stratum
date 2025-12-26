@@ -26,11 +26,7 @@ jobs:
         run: cmake --build build
 
       - name: Run Unit Tests
-        run: |
-          cd build
-          ./unit_tests
+        run: ./build/bin/unit_tests
 
       - name: Run Stratum Simulation
-        run: |
-          cd build
-          ./stratum
+        run: ./build/bin/stratum

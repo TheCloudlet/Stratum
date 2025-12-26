@@ -85,9 +85,14 @@ def gen_gaussian(filename, count=2000):
             f.write(f"{op}       0x{addr:X}\n")
 
 if __name__ == "__main__":
-    gen_sequential("sequential.txt", 5000)
-    gen_random("random.txt", 5000)
-    gen_temporal("temporal.txt", 5000)
-    gen_spatial("spatial.txt", 5000)
-    gen_large_loop("largeloop.txt", 5000)
-    gen_gaussian("gaussian.txt", 5000)
+    out_dir = "../test/data/"
+    import os
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+        
+    gen_sequential(out_dir + "sequential.txt", 5000)
+    gen_random(out_dir + "random.txt", 5000)
+    gen_temporal(out_dir + "temporal.txt", 5000)
+    gen_spatial(out_dir + "spatial.txt", 5000)
+    gen_large_loop(out_dir + "largeloop.txt", 5000)
+    gen_gaussian(out_dir + "gaussian.txt", 5000)

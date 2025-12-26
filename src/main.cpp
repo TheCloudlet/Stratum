@@ -1,4 +1,3 @@
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -21,13 +20,14 @@ int main() {
   std::vector<std::string> hierarchy = {"L1", "L2", "L3", "MainMemory"};
 
   // Define Traces
+  const std::string project_root = STRATUM_ROOT;
   std::vector<std::pair<std::string, std::string>> traces = {
-      {"Sequential", "../test/data/sequential.txt"},
-      {"Random", "../test/data/random.txt"},
-      {"Temporal", "../test/data/temporal.txt"},
-      {"Spatial", "../test/data/spatial.txt"},
-      {"LargeLoop", "../test/data/largeloop.txt"},
-      {"Gaussian", "../test/data/gaussian.txt"}};
+      {"Sequential", project_root + "/test/data/sequential.txt"},
+      {"Random", project_root + "/test/data/random.txt"},
+      {"Temporal", project_root + "/test/data/temporal.txt"},
+      {"Spatial", project_root + "/test/data/spatial.txt"},
+      {"LargeLoop", project_root + "/test/data/largeloop.txt"},
+      {"Gaussian", project_root + "/test/data/gaussian.txt"}};
 
   // Run Simulations
   for (const auto& t : traces) {

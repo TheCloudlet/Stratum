@@ -8,6 +8,8 @@
 namespace stratum {
 
 // 1. Least Recently Used (LRU)
+// Note: Uses timestamp O(ways) instead of list+map O(1) for better cache
+// locality and performance on typical 4-16 way caches (~3 vs ~100 cycles).
 class LRUPolicy {
   size_t num_sets_;
   size_t num_ways_;

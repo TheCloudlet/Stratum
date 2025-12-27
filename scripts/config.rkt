@@ -1,74 +1,109 @@
 #lang racket
 
 ;; =============================================================================
-;; 1. Configuration Structures
+;; Stratum Cache Hierarchy DSL Compiler
+;; =============================================================================
+;; This is a meta-programming tool that transforms declarative cache hierarchy
+;; specifications (S-expressions) into optimized C++ simulation code.
+;;
+;; Philosophy: Code as Data, Data as Code (Homoiconicity)
+;; - Cache configurations are first-class data structures
+;; - The compiler is just a series of transformations on lists
+;; - Pattern matching replaces manual field extraction
+;;
+;; Why Racket?
+;; - Lisp macros allow us to define a custom syntax for hardware architects
+;; - Quasiquoting makes code generation elegant (no string concatenation hell)
+;; - Functional style ensures correctness (pure functions, no side effects)
 ;; =============================================================================
 
-;; Represents a single cache level
-(struct cache-config (name sets ways lat next-type) #:transparent)
-
-;; Represents a full experiment/test case
-(struct experiment (name configs) #:transparent)
-
 ;; =============================================================================
-;; 2. Configuration Definitions (The "Input")
+;; 1. DSL Definitions (The "What", not the "How")
 ;; =============================================================================
 
-;; Case 001: Standard 3-Level Hierarchy
-(define case-001
-  (experiment "case_001"
-              (list (cache-config "L1" 64 8 4 "L2")
-                    (cache-config "L2" 512 8 64 "L3")
-                    (cache-config "L3" 8192 16 64 "MainMemory"))))
+;; Cache hierarchy specifications as pure S-expressions.
+;; Format: (experiment-name (cache-name sets ways latency next-level) ...)
+;;
+;; Example: (L1 64 8 4 L2) means:
+;;   - Name: L1
+;;   - Sets: 64 (total capacity = 64 sets × 8 ways × 64 bytes = 32KB)
+;;   - Ways: 8 (8-way set-associative)
+;;   - Latency: 4 cycles
+;;   - Next level: L2 (on miss, fetch from L2)
+(define experiments
+  `((case_001
+     ;; Standard 3-level hierarchy (L1 → L2 → L3 → Memory)
+     (L1      64   8    4   L2)
+     (L2      512  8    64  L3)
+     (L3      8192 16   64  MainMemory))
 
-;; Case 002: L1/L2 Only (Faster simulation)
-(define case-002
-  (experiment "case_002"
-              (list (cache-config "L1" 64 8 4 "L2")
-                    (cache-config "L2" 512 8 64 "MainMemory"))))
+    (case_002
+     ;; Aggressive L1, skip L3 (L1 → L2 → Memory)
+     (L1      64   8    4   L2)
+     (L2      512  8    64  MainMemory))))
 
-(define all-experiments (list case-001 case-002))
+;; Trace files to simulate (name, filename)
+(define traces
+  '(("Sequential" "sequential.txt")
+    ("Random"     "random.txt")
+    ("Temporal"   "temporal.txt")
+    ("Spatial"    "spatial.txt")
+    ("LargeLoop"  "largeloop.txt")
+    ("Gaussian"   "gaussian.txt")))
 
 ;; =============================================================================
-;; 3. C++ Code Generation Logic
+;; 2. The Compiler (S-Expression → C++ Transformation)
 ;; =============================================================================
 
-;; Generates the `using L1Type = ...` line for a single cache config.
-;; The `next-type` provided in the list is the "key" to link to the next level.
-;; However, the C++ needs the *type alias* (e.g. L2Type/MemType), not just string "L2".
-;; We handle this mapping:
-;; - "MainMemory" -> "MemType"
-;; - "L3" -> "L3Type"
-;; - etc.
-(define (get-cpp-type-alias type_name)
-  (if (equal? type_name "MainMemory")
-      "MemType"
-      (format "~aType" type_name)))
+;; Compile a single cache level definition into C++ type alias.
+;; Input:  (L1 64 8 4 L2)
+;; Output: "using L1Type = Cache<"L1", L2Type, 64, 8, 64, LRUPolicy, 4>;\n"
+(define (compile-cache-def config)
+  (match-define (list name sets ways lat next) config)
 
-(define (generate-single-cache-def config)
+  ;; Type alias mapping: MainMemory → MemType, L2 → L2Type, etc.
+  (define next-type
+    (if (eq? next 'MainMemory) "MemType" (format "~aType" next)))
+
+  ;; Generate C++ using declaration
   (format "  using ~aType = Cache<\"~a\", ~a, ~a, ~a, 64, LRUPolicy, ~a>;\n"
-          (cache-config-name config)
-          (cache-config-name config)
-          (get-cpp-type-alias (cache-config-next-type config))
-          (cache-config-sets config)
-          (cache-config-ways config)
-          (cache-config-lat config)))
+          name name next-type sets ways lat))
 
-;; Generates the full `main()` implementation for a given experiment
-(define (generate-cpp-content exp)
-  (define configs (experiment-configs exp))
+;; Extract hierarchy names from cache layers for stats tracking.
+;; Input:  ((L1 ...) (L2 ...) (L3 ...))
+;; Output: '("L1" "L2" "L3" "MainMemory")
+(define (extract-hierarchy layers)
+  (append (map (lambda (layer) (symbol->string (first layer))) layers)
+          '("MainMemory")))
 
-  ;; Reverse the configs so we print dependencies first (L3 before L2)
-  (define reversed-configs (reverse configs))
+;; Generate trace simulation loop code.
+;; Input:  top-level cache type (e.g., "L1")
+;; Output: C++ code that runs all traces
+(define (generate-trace-loop top-level)
+  (apply string-append
+         (for/list ([trace traces])
+           (match-define (list name file) trace)
+           (format "    RunTraceSimulation<~aType>(\"~a\", project_root + \"/test/data/~a\", hierarchy);\n"
+                   top-level name file))))
 
-  (define cache-definitions
-    (string-append
-     "  using MemType = MainMemory<\"MainMemory\">;\n"
-     (apply string-append (map generate-single-cache-def reversed-configs))))
+;; Compile a complete experiment into a (filename . content) pair.
+;; Input:  (case_001 (L1 ...) (L2 ...) (L3 ...))
+;; Output: ("case_001.cpp" . "C++ source code")
+(define (compile-experiment exp-def)
+  (match-define (list exp-name layers ...) exp-def)
 
-  ;; The top-level cache name (e.g., L1) is the first in the original list
-  (define top-level-type (format "~aType" (cache-config-name (first configs))))
+  ;; C++ requires bottom-up definition (L3 before L2 before L1)
+  (define reversed-layers (reverse layers))
+  (define cache-code (apply string-append (map compile-cache-def reversed-layers)))
+  (define top-level (first (first layers)))  ;; Top-level cache (usually L1)
+  (define hierarchy (extract-hierarchy layers))
 
+  ;; Return (filename . content) pair
+  (cons (format "~a.cpp" exp-name)
+        (generate-cpp-template cache-code top-level hierarchy)))
+
+;; Generate complete C++ source file from template.
+(define (generate-cpp-template cache-defs top-level hierarchy)
   (format #<<EOF
 #include <string>
 #include <vector>
@@ -78,59 +113,59 @@
 
 using namespace stratum;
 
-// Generated by Racket
+// Generated by Racket DSL Compiler
 int main() {
-  // Define Cache Types
+  // Define cache hierarchy (bottom-up: Memory → L3 → L2 → L1)
+  using MemType = MainMemory<"MainMemory">;
 ~a
-  // Define Hierarchy for Stats / Verification
-  std::vector<std::string> hierarchy = { "L1", "L2", "L3", "MainMemory" }; // Simplification: Hardcoded for now, ideally generated too
+  // Define hierarchy for statistics aggregation
+  std::vector<std::string> hierarchy = ~a;
 
-  // Define Traces
+  // Define test data location
   const std::string project_root = STRATUM_ROOT;
-  std::vector<std::pair<std::string, std::string>> traces = {
-      {"Sequential", project_root + "/test/data/sequential.txt"},
-      {"Random", project_root + "/test/data/random.txt"},
-      {"Temporal", project_root + "/test/data/temporal.txt"},
-      {"Spatial", project_root + "/test/data/spatial.txt"},
-      {"LargeLoop", project_root + "/test/data/largeloop.txt"},
-      {"Gaussian", project_root + "/test/data/gaussian.txt"}};
 
-  // Run Simulations
-  for (const auto& t : traces) {
-    RunTraceSimulation<~a>(t.first, t.second, hierarchy);
-  }
-
+  // Run all benchmark traces
+~a
   return 0;
 }
 EOF
-          cache-definitions
-          top-level-type))
+          cache-defs
+          (format-hierarchy hierarchy)
+          (generate-trace-loop top-level)))
+
+;; Format hierarchy list as C++ initializer list.
+;; Input:  '("L1" "L2" "L3" "MainMemory")
+;; Output: "{ \"L1\", \"L2\", \"L3\", \"MainMemory\" }"
+(define (format-hierarchy hierarchy)
+  (format "{ ~a }"
+          (string-join (map (lambda (s) (format "\"~a\"" s)) hierarchy) ", ")))
 
 ;; =============================================================================
-;; 4. CMake Generation Logic
+;; 3. CMakeLists.txt Generation
 ;; =============================================================================
 
-(define (generate-cmake-content experiments)
+;; Generate CMakeLists.txt for all experiments.
+;; Each experiment becomes an executable linked against fmt and with STRATUM_ROOT.
+(define (generate-cmake experiments)
   (define targets
     (for/list ([exp experiments])
-      (define name (experiment-name exp))
-      (format #<<EOF
+      (match-define (list exp-name _ ...) exp)
+      (format #<<CMAKE
 add_executable(~a ~a.cpp)
 target_link_libraries(~a PRIVATE fmt::fmt)
 target_compile_definitions(~a PRIVATE STRATUM_ROOT="${CMAKE_SOURCE_DIR}")
 
-EOF
-              name name name name)))
+CMAKE
+              exp-name exp-name exp-name exp-name)))
 
-  (string-append
-   "# Generated by Racket\n\n"
-   (apply string-append targets)))
+  (string-append "# Generated by Racket DSL Compiler\n\n"
+                 (apply string-append targets)))
 
 ;; =============================================================================
-;; 5. Main Execution / File I/O
+;; 4. Main Execution (Side Effects Isolated Here)
 ;; =============================================================================
 
-;; Get output directory from command-line argument or use default
+;; Get output directory from command-line or use default
 (define output-dir
   (let ([args (current-command-line-arguments)])
     (if (> (vector-length args) 0)
@@ -139,23 +174,23 @@ EOF
 
 (displayln (format "Output directory: ~a" output-dir))
 
-;; Ensure directory exists (create parent directories if needed)
+;; Ensure output directory exists (create recursively if needed)
 (unless (directory-exists? output-dir)
   (make-directory* output-dir))
 
-;; Write each C++ file
-(for ([exp all-experiments])
-  (define filename (build-path output-dir (format "~a.cpp" (experiment-name exp))))
-  (displayln (format "Generating ~a..." filename))
-  (call-with-output-file filename
-    (lambda (out) (display (generate-cpp-content exp) out))
+;; Generate all C++ experiment files
+(for ([exp experiments])
+  (match-define (cons fname content) (compile-experiment exp))
+  (displayln (format "Generating ~a..." fname))
+  (call-with-output-file (build-path output-dir fname)
+    (lambda (out) (display content out))
     #:exists 'replace))
 
-;; Write CMakeLists.txt
+;; Generate CMakeLists.txt
 (define cmake-filename (build-path output-dir "CMakeLists.txt"))
 (displayln (format "Generating ~a..." cmake-filename))
 (call-with-output-file cmake-filename
-  (lambda (out) (display (generate-cmake-content all-experiments) out))
+  (lambda (out) (display (generate-cmake experiments) out))
   #:exists 'replace)
 
 (displayln "Done!")

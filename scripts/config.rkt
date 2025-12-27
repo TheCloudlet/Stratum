@@ -22,25 +22,37 @@
 ;; =============================================================================
 
 ;; Cache hierarchy specifications as pure S-expressions.
-;; Format: (experiment-name (cache-name sets ways latency next-level) ...)
+;; Format: (experiment-name (cache-name sets ways latency policy next-level) ...)
 ;;
-;; Example: (L1 64 8 4 L2) means:
+;; Example: (L1 64 8 4 LRUPolicy L2) means:
 ;;   - Name: L1
 ;;   - Sets: 64 (total capacity = 64 sets × 8 ways × 64 bytes = 32KB)
 ;;   - Ways: 8 (8-way set-associative)
 ;;   - Latency: 4 cycles
+;;   - Policy: LRUPolicy (replacement policy: LRU/FIFO/Random)
 ;;   - Next level: L2 (on miss, fetch from L2)
 (define experiments
   `((case_001
-     ;; Standard 3-level hierarchy (L1 → L2 → L3 → Memory)
-     (L1      64   8    4   L2)
-     (L2      512  8    64  L3)
-     (L3      8192 16   64  MainMemory))
+     ;; Standard 3-level hierarchy with LRU
+     (L1      64   8    4   LRUPolicy   L2)
+     (L2      512  8    64  LRUPolicy   L3)
+     (L3      8192 16   64  LRUPolicy   MainMemory))
 
     (case_002
-     ;; Aggressive L1, skip L3 (L1 → L2 → Memory)
-     (L1      64   8    4   L2)
-     (L2      512  8    64  MainMemory))))
+     ;; Aggressive L1, skip L3, still LRU
+     (L1      64   8    4   LRUPolicy   L2)
+     (L2      512  8    64  LRUPolicy   MainMemory))
+
+    (case_003_fifo
+     ;; Compare FIFO vs LRU (same geometry as case_001)
+     (L1      64   8    4   FIFOPolicy  L2)
+     (L2      512  8    64  FIFOPolicy  L3)
+     (L3      8192 16   64  FIFOPolicy  MainMemory))
+
+    (case_004_random
+     ;; Baseline: Random replacement (worst-case performance)
+     (L1      64   8    4   RandomPolicy L2)
+     (L2      512  8    64  RandomPolicy MainMemory))))
 
 ;; Trace files to simulate (name, filename)
 (define traces
@@ -56,18 +68,18 @@
 ;; =============================================================================
 
 ;; Compile a single cache level definition into C++ type alias.
-;; Input:  (L1 64 8 4 L2)
+;; Input:  (L1 64 8 4 LRUPolicy L2)
 ;; Output: "using L1Type = Cache<"L1", L2Type, 64, 8, 64, LRUPolicy, 4>;\n"
 (define (compile-cache-def config)
-  (match-define (list name sets ways lat next) config)
+  (match-define (list name sets ways lat policy next) config)
 
   ;; Type alias mapping: MainMemory → MemType, L2 → L2Type, etc.
   (define next-type
     (if (eq? next 'MainMemory) "MemType" (format "~aType" next)))
 
-  ;; Generate C++ using declaration
-  (format "  using ~aType = Cache<\"~a\", ~a, ~a, ~a, 64, LRUPolicy, ~a>;\n"
-          name name next-type sets ways lat))
+  ;; Generate C++ using declaration with policy parameter
+  (format "  using ~aType = Cache<\"~a\", ~a, ~a, ~a, 64, ~a, ~a>;\n"
+          name name next-type sets ways policy lat))
 
 ;; Extract hierarchy names from cache layers for stats tracking.
 ;; Input:  ((L1 ...) (L2 ...) (L3 ...))

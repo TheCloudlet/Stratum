@@ -71,19 +71,35 @@ MainMemory             625          0                  232
 Edit `scripts/config.rkt` to define your cache experiments:
 
 ```racket
-;; Case 001: Standard 3-Level Hierarchy
-(define case-001
-  (experiment "case_001"
-    (list (cache-config "L1" 64 8 4 "L2")      ; 64 sets, 8-way, 4 cyc latency
-          (cache-config "L2" 512 8 10 "L3")    ; 512 sets, 8-way, 10 cyc
-          (cache-config "L3" 8192 16 20 "MainMemory")))) ; 8192 sets, 16-way, 20 cyc
+;; Case 001: Standard 3-Level Hierarchy with LRU
+(case_001
+  ;; Name  Sets Ways Lat Policy      Next
+  (L1      64   8    4   LRUPolicy   L2)
+  (L2      512  8    64  LRUPolicy   L3)
+  (L3      8192 16   64  LRUPolicy   MainMemory))
 
-;; Case 002: Aggressive L1 (larger, lower latency)
-(define case-002
-  (experiment "case_002"
-    (list (cache-config "L1" 128 8 3 "L2")     ; 2x larger L1
-          (cache-config "L2" 512 8 10 "MainMemory"))))
+;; Case 002: Aggressive L1, skip L3
+(case_002
+  (L1      64   8    4   LRUPolicy   L2)
+  (L2      512  8    64  LRUPolicy   MainMemory))
+
+;; Case 003: Compare FIFO vs LRU (same geometry as case_001)
+(case_003_fifo
+  (L1      64   8    4   FIFOPolicy  L2)
+  (L2      512  8    64  FIFOPolicy  L3)
+  (L3      8192 16   64  FIFOPolicy  MainMemory))
+
+;; Case 004: Random replacement baseline
+(case_004_random
+  (L1      64   8    4   RandomPolicy L2)
+  (L2      512  8    64  RandomPolicy MainMemory))
 ```
+
+**Available Policies:**
+
+- `LRUPolicy` - Least Recently Used (timestamp-based, O(ways) scan)
+- `FIFOPolicy` - First-In-First-Out (circular buffer)
+- `RandomPolicy` - Random eviction (baseline for comparison)
 
 ### 2. Generate Simulators
 
@@ -102,9 +118,28 @@ cmake -B build && cmake --build build
 ### 3. Run and Compare
 
 ```bash
-./build/bin/case_001 > results_001.txt
-./build/bin/case_002 > results_002.txt
-diff results_001.txt results_002.txt
+# Compare cache geometries
+./build/bin/case_001 > results_lru_3level.txt
+./build/bin/case_002 > results_lru_2level.txt
+
+# Compare replacement policies (same geometry, different policy)
+./build/bin/case_001 > results_lru.txt
+./build/bin/case_003_fifo > results_fifo.txt
+./build/bin/case_004_random > results_random.txt
+
+# Analyze differences
+diff results_lru.txt results_fifo.txt
+```
+
+**Example Policy Comparison:**
+
+```bash
+# LRU vs FIFO on Temporal trace (high reuse)
+grep "Temporal" results_lru.txt
+# L1: 4995 hits (99.9% hit rate)
+
+grep "Temporal" results_fifo.txt
+# L1: ~4800 hits (96% hit rate - FIFO performs worse on temporal locality)
 ```
 
 ## Manual Configuration (C++)

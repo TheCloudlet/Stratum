@@ -27,7 +27,6 @@ class LRUPolicy {
         set_counters_(sets, 0) {}
 
   // Update timestamp on hit/fill
-  // noexcept enables compiler optimizations (no exception handling overhead)
   void OnHit(size_t set_idx, size_t way_idx) noexcept {
     // Calculate flat index: set_idx * ways + way_idx
     size_t flat_idx = (set_idx * num_ways_) + way_idx;

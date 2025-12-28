@@ -114,7 +114,8 @@ class Cache {
   std::unique_ptr<NextLayer> next_;  // OWNS the next layer
 
   // Cache State
-  std::vector<std::vector<Line>> sets_;
+  // Flattened layout: [Set0_Way0, Set0_Way1... | Set1_Way0, Set1_Way1...]
+  std::vector<Line> sets_;
   ReplacePolicy policy_;
 
   // Stats
@@ -127,7 +128,7 @@ class Cache {
   template <typename... Args>
   Cache(Args&&... args)
       : next_(std::make_unique<NextLayer>(std::forward<Args>(args)...)),
-        sets_(Sets, std::vector<Line>(Ways)),
+        sets_(Sets * Ways),  // Pre-allocate all cache lines
         policy_(Sets, Ways) {}
 
   AccessResult Load(uint64_t addr) {
@@ -135,8 +136,10 @@ class Cache {
     uint64_t tag = addr / (BlockSize * Sets);
 
     // 1. Tag Lookup
+    size_t base_idx = set_idx * Ways;
     for (size_t way_idx = 0; way_idx < Ways; ++way_idx) {
-      if (sets_[set_idx][way_idx].valid && sets_[set_idx][way_idx].tag == tag) {
+      size_t flat_idx = base_idx + way_idx;
+      if (sets_[flat_idx].valid && sets_[flat_idx].tag == tag) {
         // HIT
         StatsHit();
         policy_.OnHit(set_idx, way_idx);
@@ -162,11 +165,13 @@ class Cache {
     uint64_t tag = addr / (BlockSize * Sets);
 
     // 1. Tag Lookup
+    size_t base_idx = set_idx * Ways;
     for (size_t way_idx = 0; way_idx < Ways; ++way_idx) {
-      if (sets_[set_idx][way_idx].valid && sets_[set_idx][way_idx].tag == tag) {
+      size_t flat_idx = base_idx + way_idx;
+      if (sets_[flat_idx].valid && sets_[flat_idx].tag == tag) {
         // HIT
         StatsHit();
-        sets_[set_idx][way_idx].dirty = true;
+        sets_[flat_idx].dirty = true;
         policy_.OnHit(set_idx, way_idx);
         return {Name.value, HitLatency};
       }
@@ -182,8 +187,9 @@ class Cache {
 
     // Mark the newly filled line as dirty
     for (size_t way_idx = 0; way_idx < Ways; ++way_idx) {
-      if (sets_[set_idx][way_idx].valid && sets_[set_idx][way_idx].tag == tag) {
-        sets_[set_idx][way_idx].dirty = true;
+      size_t flat_idx = base_idx + way_idx;
+      if (sets_[flat_idx].valid && sets_[flat_idx].tag == tag) {
+        sets_[flat_idx].dirty = true;
         break;
       }
     }
@@ -207,16 +213,21 @@ class Cache {
  private:
   void Fill(size_t set_idx, uint64_t tag) {
     size_t victim_way_idx = Ways;
+    size_t base_idx = set_idx * Ways;
+    
+    // Find invalid line first
     for (size_t way_idx = 0; way_idx < Ways; ++way_idx) {
-      if (!sets_[set_idx][way_idx].valid) {
+      if (!sets_[base_idx + way_idx].valid) {
         victim_way_idx = way_idx;
         break;
       }
     }
 
+    // If no invalid line, evict using replacement policy
     if (victim_way_idx == Ways) {
       victim_way_idx = policy_.GetVictim(set_idx);
-      Line& victim = sets_[set_idx][victim_way_idx];
+      size_t victim_flat_idx = base_idx + victim_way_idx;
+      Line& victim = sets_[victim_flat_idx];
       if (victim.valid && victim.dirty) {
         uint64_t evict_addr = (victim.tag * Sets + set_idx) * BlockSize;
         next_->Store(evict_addr);
@@ -224,9 +235,11 @@ class Cache {
       }
     }
 
-    sets_[set_idx][victim_way_idx].valid = true;
-    sets_[set_idx][victim_way_idx].tag = tag;
-    sets_[set_idx][victim_way_idx].dirty = false;
+    // Fill the line
+    size_t fill_idx = base_idx + victim_way_idx;
+    sets_[fill_idx].valid = true;
+    sets_[fill_idx].tag = tag;
+    sets_[fill_idx].dirty = false;
     policy_.OnFill(set_idx, victim_way_idx);
   }
 

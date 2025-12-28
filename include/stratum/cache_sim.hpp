@@ -182,15 +182,14 @@ class Cache {
 
     // Mark the newly filled line as dirty
     for (size_t way_idx = 0; way_idx < Ways; ++way_idx) {
-        if (sets_[set_idx][way_idx].valid && sets_[set_idx][way_idx].tag == tag) {
-            sets_[set_idx][way_idx].dirty = true;
-            break;
-        }
+      if (sets_[set_idx][way_idx].valid && sets_[set_idx][way_idx].tag == tag) {
+        sets_[set_idx][way_idx].dirty = true;
+        break;
+      }
     }
 
     return res;
   }
-
 
   // Helper to print stats
   void PrintStats() const {

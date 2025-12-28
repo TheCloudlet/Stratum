@@ -12,34 +12,34 @@
 
 namespace stratum {
 
-/**
- * RunTraceSimulation
- *
- * Simulates the cache system with a given trace file.
- *
- * Template Args:
- *   CacheSystem: The Top-Level Cache Type (e.g. L1Type)
- *
- * Function Args:
- *   trace_name: Human readable name for output
- *   filepath: Path to the trace file
- *   hierarchy: List of cache level names for stats aggregation
- *   lat: Hit latency/access time for the top-level cache (default 100 if
- * CacheSystem constructor takes it? Wait, your Cache implementations vary.
- *        L1Type usually takes the MemLatency if constructed recursively?
- *        Actually L1 constructor usually takes args for the *next* layer or
- * just latency?
- *
- *        Let's assume CacheSystem is constructed with TOP LEVEL latency or
- * arguments. However, in your main.cpp you did: `auto cache_system =
- * std::make_unique<L1Type>(100);` The arg `100` was passed down to MainMemory
- * ultimately.
- *
- *        To support generic construction, we can allow passing constructor
- * args. But for now, sticking to your `(100)` convention or taking it as an arg
- * is fine.
- * )
- */
+// Runs a trace-driven cache simulation and prints performance statistics.
+//
+// This function simulates a complete cache hierarchy by:
+// 1. Parsing a trace file containing memory access operations
+// 2. Executing each operation (Load/Store) through the cache system
+// 3. Recording access results (hit level, latency) for each operation
+// 4. Aggregating and printing statistics per cache level
+//
+// Template Parameters:
+//   CacheSystem: Top-level cache type (e.g., L1Type). Must provide:
+//     - Constructor accepting size_t (memory latency)
+//     - Load(uint64_t addr) -> AccessResult
+//     - Store(uint64_t addr) -> AccessResult
+//
+// Parameters:
+//   trace_name: Human-readable name for this trace (e.g., "Sequential")
+//   filepath: Path to trace file (format: "L 0x1000" or "S 0x2000")
+//   hierarchy: Cache level names in order (e.g., {"L1", "L2", "MainMemory"})
+//   mem_latency: Main memory access latency in cycles (default: 100)
+//
+// Example:
+//   RunTraceSimulation<L1Type>("Temporal", "traces/temporal.txt",
+//                              {"L1", "L2", "MainMemory"}, 200);
+//
+// Output:
+//   - Simulation header with trace name and file path
+//   - Aggregated statistics (hits, misses, avg latency per level)
+//   - Detailed access log (if trace has ≤20 operations)
 template <typename CacheSystem>
 void RunTraceSimulation(const std::string& trace_name,
                         const std::string& filepath,
@@ -55,14 +55,14 @@ void RunTraceSimulation(const std::string& trace_name,
     return;
   }
 
-  // Initialize Cache System
-  // Assuming constructor takes size_t for latency of the *lowest* level
-  // (Memory) or follows the pattern `Cache(Args...)`.
+  // Initialize cache hierarchy with specified memory latency.
+  // The latency parameter propagates down to MainMemory constructor.
   auto cache_system = std::make_unique<CacheSystem>(mem_latency);
 
   std::vector<AccessResult> history;
   std::vector<uint64_t> trace_addrs;
 
+  // Execute all trace operations and record results.
   for (const auto& op : ops) {
     AccessResult res;
     if (op.type == 'L') {
@@ -74,8 +74,10 @@ void RunTraceSimulation(const std::string& trace_name,
     trace_addrs.push_back(op.addr);
   }
 
+  // Print aggregated statistics (hits, misses, latency per level).
   PrintSimulationStats(history, hierarchy);
 
+  // Print detailed access log only for small traces (≤20 ops).
   if (history.size() <= 20) {
     PrintAccessLog(history, trace_addrs);
   } else {

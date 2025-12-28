@@ -10,20 +10,20 @@ namespace stratum {
 class LRUPolicy {
   const size_t num_sets_;
   const size_t num_ways_;
-  
+
   // Flattened timestamp array for cache locality
   // Layout: [Set0_Way0, Set0_Way1... | Set1_Way0, Set1_Way1...]
   std::vector<uint64_t> timestamps_;
-  
+
   // Logical clock per set (models hardware counter)
   std::vector<uint64_t> set_counters_;
 
  public:
-  LRUPolicy(size_t sets, size_t ways) 
-      : num_sets_(sets), 
+  LRUPolicy(size_t sets, size_t ways)
+      : num_sets_(sets),
         num_ways_(ways),
-        // Pre-allocate all memory: size = sets × ways
-        timestamps_(sets * ways, 0), 
+        // Pre-allocate all memory: size = sets * ways
+        timestamps_(sets * ways, 0),
         set_counters_(sets, 0) {}
 
   // Update timestamp on hit/fill
@@ -31,7 +31,7 @@ class LRUPolicy {
   void OnHit(size_t set_idx, size_t way_idx) noexcept {
     // Calculate flat index: set_idx * ways + way_idx
     size_t flat_idx = (set_idx * num_ways_) + way_idx;
-    
+
     // Increment set counter and tag this way with new timestamp
     // Hardware: Demux selects target register, counter value written
     timestamps_[flat_idx] = ++set_counters_[set_idx];
@@ -44,7 +44,7 @@ class LRUPolicy {
   [[nodiscard]] size_t GetVictim(size_t set_idx) const noexcept {
     size_t victim_way = 0;
     uint64_t min_time = std::numeric_limits<uint64_t>::max();
-    
+
     size_t base_idx = set_idx * num_ways_;
 
     // Linear scan of all ways in this set

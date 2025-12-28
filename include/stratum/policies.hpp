@@ -7,40 +7,55 @@
 
 namespace stratum {
 
-// 1. Least Recently Used (LRU)
-// Note: Uses timestamp O(ways) instead of list+map O(1) for better cache
-// locality and performance on typical 4-16 way caches (~3 vs ~100 cycles).
 class LRUPolicy {
-  size_t num_sets_;
-  size_t num_ways_;
-  // timestamp[set][way]
-  std::vector<std::vector<uint64_t>> last_access_time_;
+  const size_t num_sets_;
+  const size_t num_ways_;
+  
+  // Flattened timestamp array for cache locality
+  // Layout: [Set0_Way0, Set0_Way1... | Set1_Way0, Set1_Way1...]
+  std::vector<uint64_t> timestamps_;
+  
+  // Logical clock per set (models hardware counter)
   std::vector<uint64_t> set_counters_;
 
  public:
-  LRUPolicy(size_t sets, size_t ways) : num_sets_(sets), num_ways_(ways) {
-    last_access_time_.resize(sets, std::vector<uint64_t>(ways, 0));
-    set_counters_.resize(sets, 0);
+  LRUPolicy(size_t sets, size_t ways) 
+      : num_sets_(sets), 
+        num_ways_(ways),
+        // Pre-allocate all memory: size = sets × ways
+        timestamps_(sets * ways, 0), 
+        set_counters_(sets, 0) {}
+
+  // Update timestamp on hit/fill
+  // noexcept enables compiler optimizations (no exception handling overhead)
+  void OnHit(size_t set_idx, size_t way_idx) noexcept {
+    // Calculate flat index: set_idx * ways + way_idx
+    size_t flat_idx = (set_idx * num_ways_) + way_idx;
+    
+    // Increment set counter and tag this way with new timestamp
+    // Hardware: Demux selects target register, counter value written
+    timestamps_[flat_idx] = ++set_counters_[set_idx];
   }
 
-  void OnHit(size_t set_idx, size_t way_idx) {
-    last_access_time_[set_idx][way_idx] = ++set_counters_[set_idx];
+  void OnFill(size_t set_idx, size_t way_idx) noexcept {
+    OnHit(set_idx, way_idx);
   }
 
-  void OnFill(size_t set_idx, size_t way_idx) {
-    last_access_time_[set_idx][way_idx] = ++set_counters_[set_idx];
-  }
+  [[nodiscard]] size_t GetVictim(size_t set_idx) const noexcept {
+    size_t victim_way = 0;
+    uint64_t min_time = std::numeric_limits<uint64_t>::max();
+    
+    size_t base_idx = set_idx * num_ways_;
 
-  size_t GetVictim(size_t set_idx) const {
-    size_t victim_idx = 0;
-    uint64_t min_time = UINT64_MAX;
-    for (size_t way_idx = 0; way_idx < num_ways_; ++way_idx) {
-      if (last_access_time_[set_idx][way_idx] < min_time) {
-        min_time = last_access_time_[set_idx][way_idx];
-        victim_idx = way_idx;
+    // Linear scan of all ways in this set
+    // Contiguous memory layout enables efficient CPU prefetching
+    for (size_t way = 0; way < num_ways_; ++way) {
+      if (timestamps_[base_idx + way] < min_time) {
+        min_time = timestamps_[base_idx + way];
+        victim_way = way;
       }
     }
-    return victim_idx;
+    return victim_way;
   }
 };
 

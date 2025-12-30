@@ -214,7 +214,7 @@ class Cache {
   void Fill(size_t set_idx, uint64_t tag) {
     size_t victim_way_idx = Ways;
     size_t base_idx = set_idx * Ways;
-    
+
     // Find invalid line first
     for (size_t way_idx = 0; way_idx < Ways; ++way_idx) {
       if (!sets_[base_idx + way_idx].valid) {

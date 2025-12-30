@@ -271,7 +271,16 @@ Areas of interest:
 - Multi-core simulation
 - Power/energy modeling
 
-Please ensure C++20 compliance and include unit tests.
+**Code Style:**
+
+- Follow [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
+- Use `clang-format` (config provided in `.clang-format`)
+- Ensure C++20 compliance and include unit tests
+
+```bash
+# Format code before committing
+clang-format -i include/**/*.hpp src/**/*.cpp
+```
 
 ## License
 

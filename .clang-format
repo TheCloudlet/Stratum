@@ -1,0 +1,27 @@
+# Google C++ Style Guide
+# https://google.github.io/styleguide/cppguide.html
+BasedOnStyle: Google
+
+# Project-specific overrides
+ColumnLimit: 80
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+# Pointer alignment
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# Include sorting
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+
+# Namespace indentation
+NamespaceIndentation: None
+
+# Template and function formatting
+AlwaysBreakTemplateDeclarations: Yes
+AllowShortFunctionsOnASingleLine: Inline
+
+# Comments
+ReflowComments: true

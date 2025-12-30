@@ -1,0 +1,43 @@
+name: Format Check
+
+on:
+  pull_request:
+    paths:
+      - "**.cpp"
+      - "**.hpp"
+      - ".clang-format"
+  push:
+    branches:
+      - main
+    paths:
+      - "**.cpp"
+      - "**.hpp"
+      - ".clang-format"
+
+jobs:
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Check C++ formatting
+        run: |
+          echo "Checking code formatting with clang-format..."
+          find include src -type f \( -name '*.hpp' -o -name '*.cpp' \) | \
+            xargs clang-format --dry-run --Werror --style=file
+
+      - name: Show formatting diff (on failure)
+        if: failure()
+        run: |
+          echo "❌ Formatting issues found. Run the following to fix:"
+          echo "clang-format -i include/**/*.hpp src/**/*.cpp"
+          echo ""
+          echo "Diff:"
+          find include src -type f \( -name '*.hpp' -o -name '*.cpp' \) | \
+            xargs clang-format --dry-run --Werror --style=file 2>&1 || true

@@ -1,4 +1,4 @@
-name: C++ CI
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,15 +8,37 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        build_type: [Release, Debug]
+        compiler:
+          - { cc: gcc-11, cxx: g++-11 }
+          - { cc: clang, cxx: clang++ }
+        exclude:
+          # macOS doesn't have gcc-11 in default repos
+          - os: macos-latest
+            compiler: { cc: gcc-11, cxx: g++-11 }
 
-      - name: Set up GCC
-        uses: egor-tensin/setup-gcc@v1
-        with:
-          version: 11
-          platform: x64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libfmt-dev
+          if [ "${{ matrix.compiler.cc }}" = "gcc-11" ]; then
+            sudo apt-get install -y gcc-11 g++-11
+          fi
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake ninja fmt
 
       - name: Setup Racket
         uses: Bogdanp/setup-racket@v1.11
@@ -27,18 +49,24 @@ jobs:
           version: "8.2"
 
       - name: Configure CMake
+        env:
+          CC: ${{ matrix.compiler.cc }}
+          CXX: ${{ matrix.compiler.cxx }}
         run: |
-          mkdir build
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -G Ninja
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build build --config ${{ matrix.build_type }}
 
-      - name: Upload Build Artifacts
+      - name: Upload build artifacts
+        if: matrix.build_type == 'Release' && matrix.os == 'ubuntu-latest' && matrix.compiler.cc == 'gcc-11'
         uses: actions/upload-artifact@v4
         with:
           name: stratum-binaries
           path: build/bin/
+          retention-days: 7
 
   test:
     needs: build
@@ -60,7 +88,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # Need test data FIRST
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Download Build Artifacts
         uses: actions/download-artifact@v4
@@ -68,19 +97,18 @@ jobs:
           name: stratum-binaries
           path: .
 
-      - name: Run Stratum Simulation
+      - name: Run default simulation
         run: |
-          ls -la
           chmod +x stratum
           ./stratum
+          echo "✅ Default simulation completed successfully"
 
-      - name: Run Generated Simulations
+      - name: Run generated experiments
         run: |
-          if [ -f case_001 ]; then
-            chmod +x case_001
-            ./case_001
-          fi
-          if [ -f case_002 ]; then
-            chmod +x case_002
-            ./case_002
-          fi
+          for case in case_*; do
+            if [ -x "$case" ]; then
+              echo "Running $case..."
+              "./$case" > /dev/null
+              echo "✅ $(basename $case) completed"
+            fi
+          done

@@ -1,8 +1,9 @@
 # Stratum
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Standard](https://img.shields.io/badge/c%2B%2B-20-blue.svg)
-![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![C++20](https://img.shields.io/badge/c%2B%2B-20-blue.svg)
+![CI/CD](https://github.com/TheCloudlet/Stratum/workflows/CI%2FCD%20Pipeline/badge.svg)
+![Format](https://github.com/TheCloudlet/Stratum/workflows/Format%20Check/badge.svg)
 
 **A high-performance architectural exploration framework designed for rapid cache hierarchy evaluation.**
 

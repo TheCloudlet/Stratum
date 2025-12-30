@@ -54,7 +54,19 @@
      (L1      64   8    4   RandomPolicy L2)
      (L2      512  8    64  RandomPolicy MainMemory))))
 
-;; Trace files to simulate (name, filename)
+;; Add new traces here if you want to simulate real world traces
+;; Trace files should be placed in test/data/
+;; Format: ("trace_name" "trace_file.txt")
+;;
+;; Example generation command:
+;; valgrind --tool=lackey --trace-mem=yes ./your_program 2>&1 | \
+;;   perl -ne 'BEGIN{print "# Type  Addr\n"} \
+;;            if(/^ ([LSM])\s+0x([0-9a-fA-F]+)/){ \
+;;              $addr=hex($2); \
+;;              $aligned=int($addr/64)*64; \
+;;              $type=($1 eq "M")?"S":$1; \
+;;              printf "%s       0x%X\n",$type,$aligned \
+;;            }' > test/data/my_trace.txt
 (define traces
   '(("Sequential" "sequential.txt")
     ("Random"     "random.txt")

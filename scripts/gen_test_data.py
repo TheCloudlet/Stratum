@@ -1,3 +1,5 @@
+# Copyright 2025 Yi-Ping Pan (Cloudlet)
+
 import random
 
 def write_header(f):

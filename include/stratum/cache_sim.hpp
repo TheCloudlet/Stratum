@@ -1,3 +1,5 @@
+// Copyright 2025 Yi-Ping Pan (Cloudlet)
+
 #ifndef CACHE_HPP
 #define CACHE_HPP
 

@@ -1,3 +1,5 @@
+// Copyright 2025 Yi-Ping Pan (Cloudlet)
+
 #ifndef SIMULATION_HPP
 #define SIMULATION_HPP
 

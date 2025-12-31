@@ -1,3 +1,5 @@
+// Copyright 2025 Yi-Ping Pan (Cloudlet)
+
 #include <fmt/core.h>
 
 #include "stratum/cache_sim.hpp"

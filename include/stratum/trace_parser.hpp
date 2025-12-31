@@ -1,3 +1,5 @@
+// Copyright 2025 Yi-Ping Pan (Cloudlet)
+
 #ifndef TRACE_PARSER_HPP
 #define TRACE_PARSER_HPP
 

@@ -134,6 +134,9 @@ class Cache {
         policy_(Sets, Ways) {}
 
   AccessResult Load(uint64_t addr) {
+    // -------------------------------------------------------
+    // |       Tag       |    Set Index    |  Block Offset   |
+    // -------------------------------------------------------
     uint64_t set_idx = (addr / BlockSize) % Sets;
     uint64_t tag = addr / (BlockSize * Sets);
 

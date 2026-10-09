@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/img/banner.png" alt="Stratum: cache hierarchy as compile-time types" width="900">
+</p>
+
 # Stratum
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)

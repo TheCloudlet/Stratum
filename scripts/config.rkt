@@ -3,7 +3,7 @@
 ;; Copyright 2025-2026 Yi-Ping Pan (Cloudlet)
 
 ;; =============================================================================
-;; Stratum Cache Hierarchy DSL Compiler
+;; stratum Cache Hierarchy DSL Compiler
 ;; =============================================================================
 ;; This is a meta-programming tool that transforms declarative cache hierarchy
 ;; specifications (S-expressions) into optimized C++ simulation code.

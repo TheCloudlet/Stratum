@@ -1,19 +1,19 @@
 <p align="center">
-  <img src="docs/img/banner.png" alt="Stratum: cache hierarchy as compile-time types" width="900">
+  <img src="docs/img/banner.png" alt="stratum: cache hierarchy as compile-time types" width="900">
 </p>
 
-# Stratum
+# stratum
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![C++20](https://img.shields.io/badge/c%2B%2B-20-blue.svg)
-![CI/CD](https://github.com/TheCloudlet/Stratum/workflows/CI%2FCD%20Pipeline/badge.svg)
-![Format](https://github.com/TheCloudlet/Stratum/workflows/Format%20Check/badge.svg)
+![CI/CD](https://github.com/TheCloudlet/stratum/workflows/CI%2FCD%20Pipeline/badge.svg)
+![Format](https://github.com/TheCloudlet/stratum/workflows/Format%20Check/badge.svg)
 
 **A high-performance architectural exploration framework designed for rapid cache hierarchy evaluation.**
 
-Stratum leverages **C++20 template metaprogramming** to model memory hierarchies with static binding, eliminating virtual dispatch overhead ("Zero-Overhead"). This approach mirrors actual hardware instantiation—where cache topology is fixed at synthesis time—allowing architects to validate configurations and replacement policies with maximum simulation throughput.
+stratum leverages **C++20 template metaprogramming** to model memory hierarchies with static binding, eliminating virtual dispatch overhead ("Zero-Overhead"). This approach mirrors actual hardware instantiation—where cache topology is fixed at synthesis time—allowing architects to validate configurations and replacement policies with maximum simulation throughput.
 
-## Why Stratum? (So What?)
+## Why stratum? (So What?)
 
 **This project demonstrates:**
 
@@ -111,7 +111,7 @@ flowchart TD
 ### Build and Run (30 seconds)
 
 ```bash
-git clone https://github.com/TheCloudlet/Stratum.git && cd Stratum
+git clone https://github.com/TheCloudlet/stratum.git && cd stratum
 cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
 ./build/bin/stratum
 ```
@@ -295,9 +295,9 @@ MIT License - see LICENSE file for details.
 
 ```bibtex
 @software{stratum2025,
-  title={Stratum: A Zero-Overhead Cache Hierarchy Simulator},
+  title={stratum: A Zero-Overhead Cache Hierarchy Simulator},
   author={TheCloudlet},
   year={2025},
-  url={https://github.com/TheCloudlet/Stratum}
+  url={https://github.com/TheCloudlet/stratum}
 }
 ```

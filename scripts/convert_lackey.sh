@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright 2025 Yi-Ping Pan (Cloudlet)
-# Convert Valgrind lackey trace to Stratum format
+# Convert Valgrind lackey trace to stratum format
 # Usage: ./convert_lackey.sh lackey.log output.txt
 #    or: valgrind --tool=lackey --trace-mem=yes ./program 2>&1 | ./convert_lackey.sh > output.txt
 
